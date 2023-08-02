@@ -1,0 +1,97 @@
+# Maven package Java project Web App to Linux on Azure
+# Build your Java project and deploy it to Azure as a Linux web app
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger:
+- main
+
+variables:
+
+  # Azure Resource Manager connection created during pipeline creation
+  azureSubscription: '9d895700-ba63-4bc7-aec2-fdd8da55a840'
+
+  # Web app name
+  webAppName: 'spring-eureka-service-discovery'
+
+  # Environment name
+  environmentName: 'spring-eureka-service-discovery'
+
+  # Agent pool name
+  poolName: 'Self-hosted Azure Pipelines'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: MavenPackageAndPublishArtifacts
+    displayName: Maven Package and Publish Artifacts
+    pool: $(poolName)
+
+    steps:
+    - task: DeleteFiles@1
+      displayName: 'Cleanup Artifact Staging Directory'
+      inputs:
+        SourceFolder: '$(Build.ArtifactStagingDirectory)'
+        Contents: '**/*'
+
+    - task: DeleteFiles@1
+      displayName: 'Cleanup Artifact Directory'
+      inputs:
+       SourceFolder: '$(Pipeline.Workspace)'
+       Contents: 'drop/**/*'
+
+    - task: Maven@4
+      displayName: 'Maven Clean'
+      inputs:
+        mavenPomFile: 'pom.xml'
+        goals: 'clean'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.17'
+        jdkArchitectureOption: 'x64'
+
+    - task: Maven@4
+      displayName: 'Maven Package'
+      inputs:
+        mavenPomFile: 'pom.xml'
+        mavenOptions: '-Xmx1024m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.17'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        goals: 'package'
+
+    - task: CopyFiles@2
+      displayName: 'Copy Files to artifact staging directory'
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)'
+        Contents: |
+          **/target/*.?(war|jar)
+          !**/target/original*.?(war|jar)
+        TargetFolder: $(Build.ArtifactStagingDirectory)
+
+    - publish: $(Build.ArtifactStagingDirectory)
+      displayName: 'Publish Build Artifacts'
+      artifact: drop
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployLinuxWebApp
+    displayName: Deploy Linux Web App
+    environment: $(environmentName)
+    pool: $(poolName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Azure Web App Deploy: spring-eureka-service-discovery'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: webAppLinux
+              appName: $(webAppName)
+              package: '$(Pipeline.Workspace)/drop/**/target/*.?(war|jar)'
