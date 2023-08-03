@@ -9,7 +9,7 @@ trigger:
 variables:
 
   # Azure Resource Manager connection created during pipeline creation
-  azureSubscription: '9d895700-ba63-4bc7-aec2-fdd8da55a840'
+  azureSubscription: '49c0c888-3b4e-4be5-a458-1d59c6ac6f10'
 
   # Web app name
   containerAppName: 'spring-eureka-service-discovery'
