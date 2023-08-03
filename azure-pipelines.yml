@@ -9,13 +9,21 @@ trigger:
 variables:
 
   # Azure Resource Manager connection created during pipeline creation
-  azureSubscription: '9d895700-ba63-4bc7-aec2-fdd8da55a840'
+  azureSubscription: '49c0c888-3b4e-4be5-a458-1d59c6ac6f10'
 
   # Web app name
-  webAppName: 'spring-eureka-service-discovery'
+  containerAppName: 'spring-eureka-service-discovery'
+
+  # Resource group name
+  resourceGroupName: 'notification-system-rg'
+
+  # Docker
+  dockerUsername: 'coenvk'
+  dockerPassword: 'D-Z.oX6MfbC*HmmOA^sh*'
+  imageName: 'spring-eureka-service-discovery'
 
   # Environment name
-  environmentName: 'spring-eureka-service-discovery'
+  environmentName: 'notification-system-env'
 
   # Agent pool name
   poolName: 'Self-hosted Azure Pipelines'
@@ -67,31 +75,41 @@ stages:
       inputs:
         SourceFolder: '$(System.DefaultWorkingDirectory)'
         Contents: |
+          Dockerfile
           **/target/*.?(war|jar)
           !**/target/original*.?(war|jar)
         TargetFolder: $(Build.ArtifactStagingDirectory)
-
-    - publish: $(Build.ArtifactStagingDirectory)
-      displayName: 'Publish Build Artifacts'
-      artifact: drop
+    
+    - task: Docker@2
+      displayName: Docker Build and Push
+      inputs:
+        containerRegistry: 'Docker Hub'
+        repository: '$(dockerUsername)/$(imageName)'
+        command: 'buildAndPush'
+        Dockerfile: '$(Build.ArtifactStagingDirectory)/Dockerfile'
+        tags: |
+          $(Build.BuildId)
+          latest
 
 - stage: Deploy
   displayName: Deploy stage
   dependsOn: Build
   condition: succeeded()
   jobs:
-  - deployment: DeployLinuxWebApp
-    displayName: Deploy Linux Web App
+  - deployment: DeployLinuxContainerApp
+    displayName: Deploy Linux Container App
     environment: $(environmentName)
     pool: $(poolName)
     strategy:
       runOnce:
         deploy:
           steps:
-          - task: AzureWebApp@1
-            displayName: 'Azure Web App Deploy: spring-eureka-service-discovery'
+          - task: AzureCLI@2
+            displayName: 'Azure CLI: deploy container app'
             inputs:
               azureSubscription: $(azureSubscription)
-              appType: webAppLinux
-              appName: $(webAppName)
-              package: '$(Pipeline.Workspace)/drop/**/target/*.?(war|jar)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az config set extension.use_dynamic_install=yes_without_prompt
+                az containerapp up -n $(containerAppName) -g $(resourceGroupName) --location westeurope --image $(imageName):latest --environment $(environmentName) --ingress external --target-port 8761 --registry-username $(dockerUsername) --registry-password $(dockerPassword) --registry-server hub.docker.com --query properties.configuration.ingress.fqdn
