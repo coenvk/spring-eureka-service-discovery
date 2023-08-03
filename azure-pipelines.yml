@@ -75,7 +75,7 @@ stages:
       inputs:
         SourceFolder: '$(System.DefaultWorkingDirectory)'
         Contents: |
-          **/Dockerfile
+          Dockerfile
           **/target/*.?(war|jar)
           !**/target/original*.?(war|jar)
         TargetFolder: $(Build.ArtifactStagingDirectory)
