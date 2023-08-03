@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: service-discovery
+server:
+  port: 8761
+management:
+  server:
+    port: ${server.port}
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      default-zone: https://${eureka.instance.hostname}:${server.port:8761}/eureka
+    prefer-same-zone-eureka: true
+    healthcheck:
+      enabled: true
+  instance:
+    hostname: ${CONTAINER_APP_HOSTNAME:localhost}
+    instance-id: ${eureka.instance.hostname}:${spring.application.name}:${server.port:8761}
+    non-secure-port-enabled: false
+    secure-port-enabled: true
+    metadata-map:
+      zone: ${REGION_NAME:westeurope}
+    secure-port: ${server.port}
+    non-secure-port: ${server.port}
+  server:
+    wait-time-in-ms-when-sync-empty: 0
+    enable-self-preservation: false
+logging:
+  level:
+    com.netflix.eureka: info
+    com.netflix.discovery: info

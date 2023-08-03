@@ -1,6 +1,11 @@
-/.idea
+**/.idea
 /target
 /output
 *.iml
 
 **/*-local.yml
+**/*-local.yaml
+**/*-local.properties
+**/*-user.yml
+**/*-user.yaml
+**/*-user.properties

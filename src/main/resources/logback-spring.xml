@@ -2,7 +2,7 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <springProfile name="default,dev,acceptance,local">
+    <springProfile name="default,development,integration,quality,test,staging,local,user">
 
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -18,7 +18,7 @@
 
     </springProfile>
 
-    <springProfile name="acceptance">
+    <springProfile name="quality,test,staging">
 
         <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>app.log</file>
@@ -43,7 +43,7 @@
 
     </springProfile>
 
-    <springProfile name="prod">
+    <springProfile name="production">
 
         <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>app.log</file>
